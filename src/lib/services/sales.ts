@@ -111,7 +111,7 @@ export async function registerSale(supabase: Supabase, sale: PendingSaleData) {
         delivery_method: 'pickup',
         shipping_address: null,
         billing_address: null,
-        created_by: sale.staff_user_id,
+        sold_by: sale.staff_user_id,
         notes: `Venta en tienda via Staff Chat - Registrado por: ${sale.staff_name}`,
       })
       .select('id, order_number')

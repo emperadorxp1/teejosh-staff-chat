@@ -159,7 +159,7 @@ async function listDailySales(supabase: Supabase): Promise<DailySaleDetail[]> {
 
   const { data: orders } = await supabase
     .from('orders')
-    .select(`id, order_number, created_at, total, payment_method, status, created_by, users:created_by (full_name), order_items (product_name, quantity, unit_price, total_price)`)
+    .select(`id, order_number, created_at, total, payment_method, status, sold_by, users:sold_by (full_name), order_items (product_name, quantity, unit_price, total_price)`)
     .gte('created_at', todayISO)
     .order('created_at', { ascending: false });
 
