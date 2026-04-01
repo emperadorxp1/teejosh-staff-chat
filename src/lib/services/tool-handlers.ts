@@ -20,6 +20,27 @@ export async function handleToolCall(
 
 const SELECT_FIELDS = `id, name, sku, price, image_url, inventory!inner (quantity, reserved_quantity)`;
 
+// Words to strip from search queries - common Spanish sale words, articles, prepositions
+const STOP_WORDS = new Set([
+  'vendi', 'vendo', 'vendí', 'vendimos', 'venta', 'se', 'vendio', 'vendió',
+  'de', 'del', 'la', 'el', 'los', 'las', 'un', 'una', 'unos', 'unas',
+  'para', 'por', 'con', 'en', 'al', 'a', 'y', 'o',
+  'me', 'mi', 'le', 'lo', 'nos',
+  'sobre', 'sobres', // "sobre" is slang for booster pack, not useful as search term
+]);
+
+function cleanQuery(query: string): string {
+  return query
+    .trim()
+    .split(/\s+/)
+    .filter((w) => {
+      const lower = w.toLowerCase();
+      // Remove stop words, pure numbers, and single chars
+      return w.length >= 2 && !STOP_WORDS.has(lower) && !/^\d+$/.test(w);
+    })
+    .join(' ');
+}
+
 function formatResults(products: any[]) {
   return products.map((p: any) => ({
     id: p.id,
@@ -34,7 +55,14 @@ function formatResults(products: any[]) {
 }
 
 async function searchProducts(supabase: Supabase, query: string) {
-  const words = query.trim().split(/\s+/).filter((w) => w.length >= 2);
+  // Clean the query: remove stop words, numbers, etc.
+  const cleaned = cleanQuery(query);
+  const searchQuery = cleaned || query.trim(); // fallback to original if everything was stripped
+  const words = searchQuery.split(/\s+/).filter((w) => w.length >= 2);
+
+  if (words.length === 0) {
+    return [];
+  }
 
   // Strategy 1: All words must match (most specific)
   let wordQuery = supabase
@@ -53,7 +81,7 @@ async function searchProducts(supabase: Supabase, query: string) {
     .from('products')
     .select(SELECT_FIELDS)
     .eq('is_active', true)
-    .or(`name.ilike.%${query}%,sku.ilike.%${query}%`)
+    .or(`name.ilike.%${searchQuery}%,sku.ilike.%${searchQuery}%`)
     .limit(10);
 
   const seen = new Set<string>();
@@ -68,12 +96,10 @@ async function searchProducts(supabase: Supabase, query: string) {
     }
   }
 
-  // Strategy 3: If no results yet and multiple words, try each word individually
-  // This helps when the user says "Booster Pack First Partner" but the product
-  // is named "First Partner Illustration Collection"
+  // Strategy 3: If no results yet, try each word individually
   if (combined.length === 0 && words.length > 1) {
     for (const word of words) {
-      if (word.length < 3) continue; // skip very short words
+      if (word.length < 3) continue;
       const { data } = await supabase
         .from('products')
         .select(SELECT_FIELDS)
