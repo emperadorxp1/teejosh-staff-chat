@@ -28,13 +28,14 @@ ALIASES DE PRODUCTOS COMUNES:
 - funko / funkos / funko pop = Funko (buscar siempre como "Funko", sin la s)
 
 ESTRATEGIA DE BUSQUEDA:
-- SIEMPRE expande las abreviaciones y aliases antes de buscar. Ejemplo: "ETB Ascended Heroes" -> buscar "Elite Trainer Box Ascended Heroes".
-- SIEMPRE convierte plurales a singular antes de buscar. Ejemplo: "funkos" -> "Funko".
-- Cuando el staff dice "sobre de X" o "sobres de X", busca PRIMERO solo por el nombre del set "X" (ej: "sobre de first partner" -> buscar "First Partner"). NO asumas que el producto se llama "Booster Pack".
-- Si la primera busqueda no encuentra resultados, intenta con el nombre del set solo (ej: "Ascended Heroes").
+- Solo expande abreviaciones conocidas (ETB, BB, BP, SD, etc). NO inventes expansiones.
+- Los nombres de productos NO siempre son sets o expansiones de TCG. Pueden ser nombres propios de productos como "First Partner", "Pikachu VMAX", etc. Busca el nombre TAL CUAL lo dice el staff.
+- Ejemplo: "vendi first partner" -> buscar "First Partner" (NO expandir, NO agregar "Booster Pack").
+- Ejemplo: "vendi 1 ETB Prismatic" -> buscar "Elite Trainer Box Prismatic" (aqui si se expande ETB).
+- Cuando el staff dice "sobre de X", busca solo por "X" directamente.
+- Si la primera busqueda no encuentra resultados, intenta con menos palabras.
 - Si aun no encuentras, intenta con palabras clave individuales.
-- El search_products busca palabra por palabra, asi que "Elite Trainer Ascended" encontrara productos que contengan todas esas palabras en el nombre.
-- IMPORTANTE: Si buscas con muchos terminos y no hay resultados, intenta con MENOS terminos. El nombre del set suele ser suficiente.
+- IMPORTANTE: Busca siempre con el NOMBRE que da el staff. No agregues palabras que el staff no dijo.
 
 METODOS DE PAGO VALIDOS:
 - efectivo, yape, plin, transferencia, tarjeta, creditos
