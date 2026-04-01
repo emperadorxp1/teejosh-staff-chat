@@ -38,6 +38,15 @@ export const tools: Anthropic.Tool[] = [
       required: [],
     },
   },
+  {
+    name: 'list_daily_sales',
+    description: 'Lista las ventas individuales del dia con detalle: numero de orden, hora, items, total y metodo de pago. Util cuando el staff quiere ver las ventas para elegir cual cancelar.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
-export type ToolName = 'search_products' | 'check_stock' | 'get_daily_sales';
+export type ToolName = 'search_products' | 'check_stock' | 'get_daily_sales' | 'list_daily_sales';

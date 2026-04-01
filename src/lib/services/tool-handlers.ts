@@ -13,6 +13,8 @@ export async function handleToolCall(
       return JSON.stringify(await checkStock(supabase, input.product_id as string));
     case 'get_daily_sales':
       return JSON.stringify(await getDailySales(supabase));
+    case 'list_daily_sales':
+      return JSON.stringify(await listDailySales(supabase));
     default:
       return JSON.stringify({ error: `Tool desconocido: ${name}` });
   }
@@ -138,6 +140,72 @@ async function checkStock(supabase: Supabase, productId: string) {
     reserved: inv?.reserved_quantity ?? 0,
     available: (inv?.quantity ?? 0) - (inv?.reserved_quantity ?? 0),
   };
+}
+
+interface DailySaleDetail {
+  order_number: string;
+  time: string;
+  items: { product_name: string; quantity: number; unit_price: number; total_price: number }[];
+  total: number;
+  payment_method: string;
+  staff: string;
+  status: string;
+}
+
+async function listDailySales(supabase: Supabase): Promise<DailySaleDetail[]> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayISO = today.toISOString();
+
+  const { data: orders } = await supabase
+    .from('orders')
+    .select(`id, order_number, created_at, total, payment_method, status, created_by, users:created_by (full_name), order_items (product_name, quantity, unit_price, total_price)`)
+    .gte('created_at', todayISO)
+    .order('created_at', { ascending: false });
+
+  if (!orders || orders.length === 0) return [];
+
+  const orderIds = orders.map((o) => o.id);
+  const { data: payments } = await supabase
+    .from('order_payments')
+    .select('order_id, payment_method, amount')
+    .in('order_id', orderIds);
+
+  const paymentsByOrder = new Map<string, { method: string; amount: number }[]>();
+  if (payments) {
+    for (const p of payments) {
+      const list = paymentsByOrder.get(p.order_id) || [];
+      list.push({ method: p.payment_method, amount: p.amount });
+      paymentsByOrder.set(p.order_id, list);
+    }
+  }
+
+  return orders.map((o) => {
+    const orderPayments = paymentsByOrder.get(o.id) || [];
+    const paymentStr = orderPayments.length > 1
+      ? orderPayments.map((p) => `${p.method}: S/${p.amount.toFixed(2)}`).join(', ')
+      : orderPayments[0]?.method || o.payment_method || 'efectivo';
+
+    const staff = (o as any).users?.full_name || '';
+
+    const createdAt = new Date(o.created_at);
+    const time = createdAt.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+    return {
+      order_number: o.order_number,
+      time,
+      items: (o.order_items as any[] || []).map((i: any) => ({
+        product_name: i.product_name,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        total_price: i.total_price,
+      })),
+      total: o.total,
+      payment_method: paymentStr,
+      staff,
+      status: o.status,
+    };
+  });
 }
 
 async function getDailySales(supabase: Supabase): Promise<DailySalesSummary> {

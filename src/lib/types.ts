@@ -83,7 +83,7 @@ export interface DailySalesSummary {
 }
 
 export interface AgentResult {
-  type: 'sale' | 'error' | 'info' | 'cash_movement' | 'staff_withdrawal' | 'product_opening' | 'stock_adjustment' | 'tournament_inscription';
+  type: 'sale' | 'error' | 'info' | 'cash_movement' | 'staff_withdrawal' | 'product_opening' | 'stock_adjustment' | 'tournament_inscription' | 'sale_cancellation';
   items?: SaleItem[];
   payment_method?: string;
   payments?: PaymentSplit[];
@@ -116,6 +116,14 @@ export interface AgentResult {
     current_stock: number;
     reason: string;
   }[];
+  order_number?: string;
+}
+
+export interface PendingCancellationData {
+  _type: 'sale_cancellation';
+  order_number: string;
+  staff_user_id: string;
+  staff_name: string;
 }
 
 export interface ChatMessage {

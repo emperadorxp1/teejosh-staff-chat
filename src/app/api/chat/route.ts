@@ -3,7 +3,7 @@ import { getAuthenticatedStaff } from '@/lib/auth';
 import { processMessage } from '@/lib/services/agent';
 import { hasOpenSession, registerCashMovement } from '@/lib/services/sales';
 import { formatCashMovement, formatTournamentInscription } from '@/lib/formatting';
-import type { PaymentSplit, PendingSaleData, PendingWithdrawalData, PendingOpeningData, PendingStockAdjustmentData } from '@/lib/types';
+import type { PaymentSplit, PendingSaleData, PendingWithdrawalData, PendingOpeningData, PendingStockAdjustmentData, PendingCancellationData } from '@/lib/types';
 
 export async function POST(request: Request) {
   const auth = await getAuthenticatedStaff();
@@ -135,6 +135,20 @@ export async function POST(request: Request) {
     return NextResponse.json({
       result: { type: 'stock_adjustment' },
       confirmation: { type: 'stock_adjustment', data },
+      user: { id: user.id, name: user.full_name || user.email, role: user.role },
+    });
+  }
+
+  if (result.type === 'sale_cancellation' && result.order_number) {
+    const data: PendingCancellationData = {
+      _type: 'sale_cancellation',
+      order_number: result.order_number,
+      staff_user_id: user.id,
+      staff_name: user.full_name || user.email,
+    };
+    return NextResponse.json({
+      result: { type: 'sale_cancellation' },
+      confirmation: { type: 'sale_cancellation', data },
       user: { id: user.id, name: user.full_name || user.email, role: user.role },
     });
   }

@@ -117,6 +117,21 @@ export default function ConfirmationCard({ type, data, onConfirm, onCancel, isLo
         );
       }
 
+      case 'sale_cancellation': {
+        return (
+          <>
+            <h3 className="font-bold text-red-400 mb-3">⚠️ Cancelar Venta</h3>
+            <div className="text-sm">
+              <p className="text-white font-medium">Pedido: {data.order_number}</p>
+              <p className="text-gray-400 mt-2">
+                Se cancelara la venta y se restaurara el stock de todos los productos.
+              </p>
+            </div>
+            <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-gray-700">👤 {data.staff_name}</p>
+          </>
+        );
+      }
+
       default:
         return <p className="text-gray-400">Operacion desconocida</p>;
     }

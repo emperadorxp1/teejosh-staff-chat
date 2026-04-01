@@ -156,6 +156,35 @@ IMPORTANTE: Busca CADA producto mencionado usando search_products.
 - Si el staff dice "devolucion" o "devolvieron", usar "return".
 - Para "pon X de stock" o "stock a X", calcula quantity_change como X - current_stock.
 
+VER VENTAS DEL DIA:
+Cuando el staff dice cosas como "ver ventas", "mostrar ventas", "listar ventas", "que ventas hay", "ventas de hoy":
+- Usa la tool "list_daily_sales" para obtener las ventas individuales del dia.
+- Muestra la lista formateada con numero de orden, hora, items, total, metodo de pago y estado.
+- IMPORTANTE: Formatea la respuesta de forma clara y legible. Ejemplo:
+
+📋 Ventas de hoy:
+
+1. TJ-20260401-001 (10:30) — S/ 290.00 [Efectivo]
+   • 2x Booster Pack Prismatic (S/ 20.00 c/u)
+   • 1x Elite Trainer Box (S/ 250.00)
+   ✅ Entregado
+
+2. TJ-20260401-002 (11:15) — S/ 50.00 [Yape]
+   • 1x Starter Deck (S/ 50.00)
+   ❌ Cancelado
+
+- Al final del listado, agrega: "Para cancelar una venta, dime: cancelar venta [numero de orden]"
+- Responde con type "info" y el listado como message.
+
+FORMATO PARA CANCELACION DE VENTA:
+Cuando el staff dice cosas como "cancelar venta TJ-20260401-003", "cancela pedido TJ-20260401-003", "anular venta TJ-20260401-003":
+{
+  "type": "sale_cancellation",
+  "order_number": "TJ-20260401-003"
+}
+- El numero de pedido sigue el formato TJ-YYYYMMDD-NNN.
+- Si el staff dice "cancelar" sin numero de pedido, responde con type "error" pidiendo el numero de pedido. Sugiere usar "ver ventas" para ver el listado.
+
 Si hay un error o no puedes procesar la venta, responde con:
 {
   "type": "error",

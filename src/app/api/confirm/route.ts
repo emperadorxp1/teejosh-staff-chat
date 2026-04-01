@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthenticatedStaff } from '@/lib/auth';
-import { registerSale } from '@/lib/services/sales';
+import { registerSale, cancelSale } from '@/lib/services/sales';
 import { registerWithdrawal } from '@/lib/services/withdrawals';
 import { registerOpening } from '@/lib/services/openings';
 import { adjustStock } from '@/lib/services/inventory';
@@ -58,6 +58,17 @@ export async function POST(request: Request) {
         return NextResponse.json({
           success: true,
           message: `Ajuste de stock registrado\n${summary}`,
+        });
+      }
+      return NextResponse.json({ success: false, error: result.error });
+    }
+
+    case 'sale_cancellation': {
+      const result = await cancelSale(serviceClient, data.order_number);
+      if (result.success) {
+        return NextResponse.json({
+          success: true,
+          message: `Venta ${data.order_number} cancelada exitosamente. Stock restaurado.`,
         });
       }
       return NextResponse.json({ success: false, error: result.error });
