@@ -48,7 +48,7 @@ export default function QuickActions({ onAction, onQuickSale, disabled }: Props)
       if (data.success) {
         const diff = data.difference;
         const diffText = diff === 0 ? 'Cuadre perfecto' : diff > 0 ? `Sobrante: S/ ${diff.toFixed(2)}` : `Faltante: S/ ${Math.abs(diff).toFixed(2)}`;
-        onAction(`✅ Caja cerrada\nEfectivo esperado: S/ ${data.expected.toFixed(2)}\nEfectivo contado: S/ ${(Number(cashAmount) || 0).toFixed(2)}\n${diffText}`);
+        onAction(`✅ Caja cerrada\nEfectivo esperado: S/ ${data.expected.toFixed(2)}\nEfectivo contado: S/ ${(Number(cashAmount) || 0).toFixed(2)}\n${diffText}\n\nTranquilo, mañana venderas el doble 💪`);
       } else {
         onAction(`Error: ${data.error}`);
       }
