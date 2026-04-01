@@ -4,10 +4,11 @@ import { useState } from 'react';
 
 interface Props {
   onAction: (message: string) => void;
+  onQuickSale: () => void;
   disabled: boolean;
 }
 
-export default function QuickActions({ onAction, disabled }: Props) {
+export default function QuickActions({ onAction, onQuickSale, disabled }: Props) {
   const [showCashInput, setShowCashInput] = useState<'open' | 'close' | null>(null);
   const [cashAmount, setCashAmount] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -118,6 +119,12 @@ export default function QuickActions({ onAction, disabled }: Props) {
   return (
     <div className="flex-shrink-0 bg-surface-100 border-t border-gray-800 px-3 py-2">
       <div className="flex gap-2 overflow-x-auto no-scrollbar">
+        <QuickButton
+          onClick={onQuickSale}
+          disabled={disabled || actionLoading}
+          icon="🛒"
+          label="Venta rapida"
+        />
         <QuickButton
           onClick={() => setShowCashInput('open')}
           disabled={disabled || actionLoading}

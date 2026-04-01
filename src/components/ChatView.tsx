@@ -7,6 +7,7 @@ import ConfirmationCard from './ConfirmationCard';
 import QuickActions from './QuickActions';
 import CashSessionBanner from './CashSessionBanner';
 import VoiceRecorder from './VoiceRecorder';
+import QuickSaleFlow from './QuickSaleFlow';
 
 interface ChatViewProps {
   user: StaffUser;
@@ -26,6 +27,7 @@ export default function ChatView({ user }: ChatViewProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [pendingConfirmation, setPendingConfirmation] = useState<any>(null);
   const [cashRefresh, setCashRefresh] = useState(0);
+  const [showQuickSale, setShowQuickSale] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -44,6 +46,13 @@ export default function ChatView({ user }: ChatViewProps) {
 
   async function sendMessage(text: string) {
     if (!text.trim() || isLoading) return;
+
+    const normalized = text.trim().toLowerCase();
+    if (normalized === 'venta' || normalized === 'venta rapida') {
+      setInput('');
+      setShowQuickSale(true);
+      return;
+    }
 
     addMessage({ role: 'user', content: text, type: 'text' });
     setInput('');
@@ -130,6 +139,22 @@ export default function ChatView({ user }: ChatViewProps) {
     setCashRefresh((c) => c + 1);
   }
 
+  function handleQuickSaleComplete(saleData: any) {
+    setShowQuickSale(false);
+    setPendingConfirmation({ type: 'sale', data: saleData });
+    addMessage({
+      role: 'assistant',
+      content: '',
+      type: 'confirmation',
+      confirmationType: 'sale',
+      confirmationData: saleData,
+    });
+  }
+
+  function handleQuickSaleCancel() {
+    setShowQuickSale(false);
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     sendMessage(input);
@@ -202,7 +227,11 @@ export default function ChatView({ user }: ChatViewProps) {
       </div>
 
       {/* Quick Actions */}
-      <QuickActions onAction={handleQuickAction} disabled={isLoading || !!pendingConfirmation} />
+      <QuickActions
+        onAction={handleQuickAction}
+        onQuickSale={() => setShowQuickSale(true)}
+        disabled={isLoading || !!pendingConfirmation}
+      />
 
       {/* Input */}
       <form
@@ -233,6 +262,14 @@ export default function ChatView({ user }: ChatViewProps) {
           </svg>
         </button>
       </form>
+
+      {showQuickSale && (
+        <QuickSaleFlow
+          onComplete={handleQuickSaleComplete}
+          onCancel={handleQuickSaleCancel}
+          user={user}
+        />
+      )}
     </div>
   );
 }
