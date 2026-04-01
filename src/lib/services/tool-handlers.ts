@@ -18,12 +18,28 @@ export async function handleToolCall(
   }
 }
 
+const SELECT_FIELDS = `id, name, sku, price, image_url, inventory!inner (quantity, reserved_quantity)`;
+
+function formatResults(products: any[]) {
+  return products.map((p: any) => ({
+    id: p.id,
+    name: p.name,
+    sku: p.sku,
+    price: p.price,
+    stock: p.inventory?.quantity ?? 0,
+    reserved: p.inventory?.reserved_quantity ?? 0,
+    available: (p.inventory?.quantity ?? 0) - (p.inventory?.reserved_quantity ?? 0),
+    image_url: p.image_url,
+  }));
+}
+
 async function searchProducts(supabase: Supabase, query: string) {
   const words = query.trim().split(/\s+/).filter((w) => w.length >= 2);
 
+  // Strategy 1: All words must match (most specific)
   let wordQuery = supabase
     .from('products')
-    .select(`id, name, sku, price, image_url, inventory!inner (quantity, reserved_quantity)`)
+    .select(SELECT_FIELDS)
     .eq('is_active', true);
 
   for (const word of words) {
@@ -32,9 +48,10 @@ async function searchProducts(supabase: Supabase, query: string) {
 
   const { data: wordResults } = await wordQuery.limit(10);
 
+  // Strategy 2: Direct substring or SKU match
   const { data: directResults } = await supabase
     .from('products')
-    .select(`id, name, sku, price, image_url, inventory!inner (quantity, reserved_quantity)`)
+    .select(SELECT_FIELDS)
     .eq('is_active', true)
     .or(`name.ilike.%${query}%,sku.ilike.%${query}%`)
     .limit(10);
@@ -51,16 +68,31 @@ async function searchProducts(supabase: Supabase, query: string) {
     }
   }
 
-  return combined.slice(0, 10).map((p: any) => ({
-    id: p.id,
-    name: p.name,
-    sku: p.sku,
-    price: p.price,
-    stock: p.inventory?.quantity ?? 0,
-    reserved: p.inventory?.reserved_quantity ?? 0,
-    available: (p.inventory?.quantity ?? 0) - (p.inventory?.reserved_quantity ?? 0),
-    image_url: p.image_url,
-  }));
+  // Strategy 3: If no results yet and multiple words, try each word individually
+  // This helps when the user says "Booster Pack First Partner" but the product
+  // is named "First Partner Illustration Collection"
+  if (combined.length === 0 && words.length > 1) {
+    for (const word of words) {
+      if (word.length < 3) continue; // skip very short words
+      const { data } = await supabase
+        .from('products')
+        .select(SELECT_FIELDS)
+        .eq('is_active', true)
+        .ilike('name', `%${word}%`)
+        .limit(5);
+
+      if (data) {
+        for (const p of data) {
+          if (!seen.has(p.id)) {
+            seen.add(p.id);
+            combined.push(p);
+          }
+        }
+      }
+    }
+  }
+
+  return formatResults(combined.slice(0, 10));
 }
 
 async function checkStock(supabase: Supabase, productId: string) {
