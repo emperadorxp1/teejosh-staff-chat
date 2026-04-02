@@ -186,14 +186,21 @@ export async function cancelSale(supabase: Supabase, orderNumber: string) {
   }
 }
 
+export function getTodayStartISO(): string {
+  const now = new Date();
+  const peruOffset = -5 * 60;
+  const peruTime = new Date(now.getTime() + (peruOffset - now.getTimezoneOffset()) * 60000);
+  peruTime.setHours(0, 0, 0, 0);
+  return new Date(peruTime.getTime() - (peruOffset - now.getTimezoneOffset()) * 60000).toISOString();
+}
+
 export async function getDailySalesSummary(supabase: Supabase): Promise<DailySalesSummary> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const todayISO = getTodayStartISO();
 
   const { data: orders } = await supabase
     .from('orders')
     .select(`id, total, order_items (quantity)`)
-    .gte('created_at', today.toISOString())
+    .gte('created_at', todayISO)
     .neq('status', 'cancelled')
     .neq('status', 'refunded');
 

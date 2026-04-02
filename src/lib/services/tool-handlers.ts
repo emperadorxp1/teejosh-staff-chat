@@ -1,5 +1,6 @@
 import type { Supabase, DailySalesSummary } from '../types';
 import type { ToolName } from './tools';
+import { getTodayStartISO } from './sales';
 
 export async function handleToolCall(
   supabase: Supabase,
@@ -153,9 +154,7 @@ interface DailySaleDetail {
 }
 
 async function listDailySales(supabase: Supabase): Promise<DailySaleDetail[]> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayISO = today.toISOString();
+  const todayISO = getTodayStartISO();
 
   const { data: orders } = await supabase
     .from('orders')
@@ -223,9 +222,7 @@ async function listDailySales(supabase: Supabase): Promise<DailySaleDetail[]> {
 }
 
 async function getDailySales(supabase: Supabase): Promise<DailySalesSummary> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayISO = today.toISOString();
+  const todayISO = getTodayStartISO();
 
   const { data: orders } = await supabase
     .from('orders')
