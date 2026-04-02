@@ -159,13 +159,27 @@ async function listDailySales(supabase: Supabase): Promise<DailySaleDetail[]> {
 
   const { data: orders } = await supabase
     .from('orders')
-    .select(`id, order_number, created_at, total, payment_method, status, sold_by, users:sold_by (full_name), order_items (product_name, quantity, unit_price, total_price)`)
+    .select(`id, order_number, created_at, total, payment_method, status, sold_by, order_items (product_name, quantity, unit_price, total_price)`)
     .gte('created_at', todayISO)
     .order('created_at', { ascending: false });
 
   if (!orders || orders.length === 0) return [];
 
   const orderIds = orders.map((o) => o.id);
+
+  // Fetch staff names separately to avoid join failures when sold_by is NULL
+  const staffIds = [...new Set(orders.map((o) => o.sold_by).filter(Boolean))] as string[];
+  const staffMap = new Map<string, string>();
+  if (staffIds.length > 0) {
+    const { data: staffUsers } = await supabase
+      .from('users')
+      .select('id, full_name')
+      .in('id', staffIds);
+    if (staffUsers) {
+      for (const u of staffUsers) staffMap.set(u.id, u.full_name || '');
+    }
+  }
+
   const { data: payments } = await supabase
     .from('order_payments')
     .select('order_id, payment_method, amount')
@@ -186,7 +200,7 @@ async function listDailySales(supabase: Supabase): Promise<DailySaleDetail[]> {
       ? orderPayments.map((p) => `${p.method}: S/${p.amount.toFixed(2)}`).join(', ')
       : orderPayments[0]?.method || o.payment_method || 'efectivo';
 
-    const staff = (o as any).users?.full_name || '';
+    const staff = (o.sold_by && staffMap.get(o.sold_by)) || '';
 
     const createdAt = new Date(o.created_at);
     const time = createdAt.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
