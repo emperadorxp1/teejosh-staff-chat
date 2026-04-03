@@ -117,10 +117,7 @@ export async function registerSale(supabase: Supabase, sale: PendingSaleData) {
       .select('id, order_number')
       .single();
 
-    if (orderError || !order) {
-      console.error('Order insert error:', orderError);
-      return { success: false, error: `Error al crear el pedido: ${orderError?.message || 'sin datos'}` };
-    }
+    if (orderError || !order) return { success: false, error: 'Error al crear el pedido.' };
 
     if (isSplitPayment && sale.payments) {
       await supabase.from('order_payments').insert(
