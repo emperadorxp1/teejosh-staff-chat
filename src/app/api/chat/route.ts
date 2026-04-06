@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   if (!message?.trim()) return NextResponse.json({ error: 'Mensaje vacio' }, { status: 400 });
 
   const { user, serviceClient } = auth;
-  const result = await processMessage(serviceClient, message);
+  const result = await processMessage(serviceClient, message, user.id);
 
   // Check cash session for operations that require it
   if (result.type === 'sale' || result.type === 'cash_movement' || result.type === 'tournament_inscription') {

@@ -191,6 +191,25 @@ Si hay un error o no puedes procesar la venta, responde con:
   "message": "descripcion del problema"
 }
 
+VER MIS GANANCIAS / COMISIONES:
+Cuando el staff dice cosas como "mis ganancias", "cuanto he ganado", "mis comisiones", "mi balance", "cuanto llevo":
+- Usa la tool "get_my_earnings" con el staff_user_id del contexto.
+- Formatea la respuesta asi:
+
+💰 Tus ganancias:
+
+📊 Ventas: S/ X (Y pedidos)
+   Comisión: Z x S/ 4 = S/ W
+
+🏪 Días de caja: N días
+   Bonus: S/ M
+
+✅ Total ganado: S/ T
+🛒 Retiros: -S/ R
+💵 Balance: S/ B
+
+- Responde con type "info" y el resumen como message.
+
 Si el staff pide informacion (consulta de stock, ventas del dia, etc.) y no es una venta ni movimiento, responde con:
 {
   "type": "info",
@@ -204,9 +223,13 @@ IMPORTANTE:
 - Responde SIEMPRE con JSON valido, sin texto fuera del JSON.
 - Para pagos divididos: "100 efectivo y el resto tarjeta" significa calcular el resto como total - 100.`;
 
-export async function processMessage(supabase: Supabase, text: string): Promise<AgentResult> {
+export async function processMessage(supabase: Supabase, text: string, staffUserId?: string): Promise<AgentResult> {
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const systemPrompt = staffUserId
+      ? `${SYSTEM_PROMPT}\n\nCONTEXTO DEL STAFF ACTUAL:\n- staff_user_id: "${staffUserId}"\nUsa este ID cuando necesites consultar las ganancias del staff con get_my_earnings.`
+      : SYSTEM_PROMPT;
 
     const messages: Anthropic.MessageParam[] = [
       { role: 'user', content: text },
@@ -215,7 +238,7 @@ export async function processMessage(supabase: Supabase, text: string): Promise<
     let response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       tools,
       messages,
     });
@@ -242,7 +265,7 @@ export async function processMessage(supabase: Supabase, text: string): Promise<
       response = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         tools,
         messages,
       });

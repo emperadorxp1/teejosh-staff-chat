@@ -16,6 +16,8 @@ export async function handleToolCall(
       return JSON.stringify(await getDailySales(supabase));
     case 'list_daily_sales':
       return JSON.stringify(await listDailySales(supabase));
+    case 'get_my_earnings':
+      return JSON.stringify(await getStaffEarnings(supabase, input.staff_user_id as string));
     default:
       return JSON.stringify({ error: `Tool desconocido: ${name}` });
   }
@@ -268,4 +270,68 @@ async function getDailySales(supabase: Supabase): Promise<DailySalesSummary> {
   }
 
   return summary;
+}
+
+async function getStaffEarnings(supabase: Supabase, staffUserId: string) {
+  // 1. Sales by this staff (completed/delivered orders)
+  const { data: orders } = await supabase
+    .from('orders')
+    .select('total')
+    .eq('sold_by', staffUserId)
+    .in('status', ['delivered', 'completed', 'shipped', 'confirmed', 'processing']);
+
+  let totalSales = 0;
+  let ordersCount = 0;
+  if (orders) {
+    ordersCount = orders.length;
+    for (const o of orders) totalSales += o.total || 0;
+  }
+
+  // 2. Days with cash register opened
+  const { data: sessions } = await supabase
+    .from('cash_register_sessions')
+    .select('opened_at')
+    .eq('opened_by', staffUserId);
+
+  const uniqueDays = new Set<string>();
+  if (sessions) {
+    for (const s of sessions) {
+      const day = new Date(s.opened_at).toISOString().slice(0, 10);
+      uniqueDays.add(day);
+    }
+  }
+  const daysOpened = uniqueDays.size;
+
+  // 3. Withdrawals cost
+  const { data: withdrawals } = await supabase
+    .from('staff_withdrawals')
+    .select('staff_withdrawal_items (total_price)')
+    .eq('staff_user_id', staffUserId);
+
+  let withdrawalsCost = 0;
+  if (withdrawals) {
+    for (const w of withdrawals as any[]) {
+      for (const item of (w.staff_withdrawal_items || [])) {
+        withdrawalsCost += item.total_price || 0;
+      }
+    }
+  }
+
+  // 4. Calculate commissions
+  const salesCommission = Math.floor(totalSales / 150) * 4;
+  const cajaBonus = daysOpened * 4;
+  const totalEarned = salesCommission + cajaBonus;
+  const balance = totalEarned - withdrawalsCost;
+
+  return {
+    total_sales: totalSales,
+    orders_count: ordersCount,
+    sales_commission: salesCommission,
+    sales_commission_detail: `${Math.floor(totalSales / 150)} x S/ 4`,
+    days_opened: daysOpened,
+    caja_bonus: cajaBonus,
+    total_earned: totalEarned,
+    withdrawals_cost: withdrawalsCost,
+    balance,
+  };
 }
