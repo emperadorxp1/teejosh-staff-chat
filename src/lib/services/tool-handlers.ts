@@ -275,19 +275,49 @@ async function getDailySales(supabase: Supabase): Promise<DailySalesSummary> {
 }
 
 async function getStaffEarnings(supabase: Supabase, staffUserId: string) {
+  // Get staff name for matching old orders (before sold_by was added)
+  const { data: staffUser } = await supabase
+    .from('users')
+    .select('full_name')
+    .eq('id', staffUserId)
+    .single();
+  const staffName = staffUser?.full_name || '';
+
   // 1. Sales by this staff (completed/delivered orders)
-  const { data: orders } = await supabase
+  const validStatuses = ['delivered', 'completed', 'shipped', 'confirmed', 'processing'];
+
+  // Orders with sold_by set (new orders)
+  const { data: ordersBySoldBy } = await supabase
     .from('orders')
-    .select('total')
+    .select('id, total')
     .eq('sold_by', staffUserId)
-    .in('status', ['delivered', 'completed', 'shipped', 'confirmed', 'processing']);
+    .in('status', validStatuses);
+
+  // Old orders without sold_by but with staff name in notes
+  let ordersFromNotes: { id: string; total: number }[] = [];
+  if (staffName) {
+    const { data } = await supabase
+      .from('orders')
+      .select('id, total')
+      .is('sold_by', null)
+      .ilike('notes', `%Registrado por: ${staffName}%`)
+      .in('status', validStatuses);
+    ordersFromNotes = (data as any[]) || [];
+  }
+
+  // Merge both sets, dedup by id
+  const seen = new Set<string>();
+  const allOrders: { total: number }[] = [];
+  for (const o of [...(ordersBySoldBy || []), ...ordersFromNotes]) {
+    if (!seen.has(o.id)) {
+      seen.add(o.id);
+      allOrders.push(o);
+    }
+  }
 
   let totalSales = 0;
-  let ordersCount = 0;
-  if (orders) {
-    ordersCount = orders.length;
-    for (const o of orders) totalSales += o.total || 0;
-  }
+  let ordersCount = allOrders.length;
+  for (const o of allOrders) totalSales += o.total || 0;
 
   // 2. Days with cash register opened
   const { data: sessions } = await supabase
