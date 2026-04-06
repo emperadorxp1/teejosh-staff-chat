@@ -296,41 +296,18 @@ async function getStaffEarnings(supabase: Supabase, staffUserId: string) {
     .single();
   const staffName = staffUser?.full_name || '';
 
-  // 1. Sales by this staff (completed/delivered orders)
-  const validStatuses = ['delivered', 'completed', 'shipped', 'confirmed', 'processing'];
-
-  // Orders with sold_by set (new orders)
-  const { data: ordersBySoldBy } = await supabase
+  // 1. Sales by this staff - use .or() to match by sold_by OR notes, exclude cancelled/refunded
+  const notesFilter = staffName ? `,notes.ilike.%Registrado por: ${staffName}%` : '';
+  const { data: allOrders } = await supabase
     .from('orders')
     .select('id, total')
-    .eq('sold_by', staffUserId)
-    .in('status', validStatuses);
-
-  // Old orders without sold_by but with staff name in notes
-  let ordersFromNotes: { id: string; total: number }[] = [];
-  if (staffName) {
-    const { data } = await supabase
-      .from('orders')
-      .select('id, total')
-      .is('sold_by', null)
-      .ilike('notes', `%Registrado por: ${staffName}%`)
-      .in('status', validStatuses);
-    ordersFromNotes = (data as any[]) || [];
-  }
-
-  // Merge both sets, dedup by id
-  const seen = new Set<string>();
-  const allOrders: { total: number }[] = [];
-  for (const o of [...(ordersBySoldBy || []), ...ordersFromNotes]) {
-    if (!seen.has(o.id)) {
-      seen.add(o.id);
-      allOrders.push(o);
-    }
-  }
+    .or(`sold_by.eq.${staffUserId}${notesFilter}`)
+    .neq('status', 'cancelled')
+    .neq('status', 'refunded');
 
   let totalSales = 0;
-  let ordersCount = allOrders.length;
-  for (const o of allOrders) totalSales += o.total || 0;
+  let ordersCount = allOrders?.length ?? 0;
+  for (const o of (allOrders || [])) totalSales += Number(o.total) || 0;
 
   // 2. Days with cash register opened
   const { data: sessions } = await supabase
