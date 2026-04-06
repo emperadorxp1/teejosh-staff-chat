@@ -36,6 +36,11 @@ export default function QuickSaleFlow({ onComplete, onCancel, user }: QuickSaleF
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState('');
   const [payment, setPayment] = useState<PaymentMethod>('efectivo');
+  const [isSplit, setIsSplit] = useState(false);
+  const [splitPayments, setSplitPayments] = useState<{ method: PaymentMethod; amount: string }[]>([
+    { method: 'efectivo', amount: '' },
+    { method: 'yape', amount: '' },
+  ]);
 
   useEffect(() => {
     fetch('/api/products/hot')
@@ -63,6 +68,24 @@ export default function QuickSaleFlow({ onComplete, onCancel, user }: QuickSaleF
     const price = Number(unitPrice) || selected.price;
     const total = quantity * price;
 
+    let payments: { method: PaymentMethod; amount: number }[];
+    let paymentMethod: PaymentMethod | 'mixto';
+
+    if (isSplit) {
+      payments = splitPayments
+        .filter((p) => Number(p.amount) > 0)
+        .map((p) => ({ method: p.method, amount: Number(p.amount) }));
+      if (payments.length === 0) {
+        payments = [{ method: 'efectivo', amount: total }];
+        paymentMethod = 'efectivo';
+      } else {
+        paymentMethod = payments.length > 1 ? 'mixto' : payments[0].method;
+      }
+    } else {
+      payments = [{ method: payment, amount: total }];
+      paymentMethod = payment;
+    }
+
     onComplete({
       items: [
         {
@@ -75,8 +98,8 @@ export default function QuickSaleFlow({ onComplete, onCancel, user }: QuickSaleF
           available_stock: selected.available,
         },
       ],
-      payment_method: payment,
-      payments: [{ method: payment, amount: total }],
+      payment_method: paymentMethod,
+      payments,
       total,
       staff_user_id: user.id,
       staff_name: user.full_name || user.email,
@@ -166,22 +189,97 @@ export default function QuickSaleFlow({ onComplete, onCancel, user }: QuickSaleF
 
           {/* Payment method */}
           <div>
-            <label className="text-xs text-gray-400 mb-1.5 block">Medio de pago</label>
-            <div className="grid grid-cols-3 gap-2">
-              {PAYMENT_METHODS.map((m) => (
-                <button
-                  key={m.value}
-                  onClick={() => setPayment(m.value)}
-                  className={`px-3 py-2 rounded-xl text-xs font-medium border transition-colors ${
-                    payment === m.value
-                      ? 'bg-primary/20 border-primary text-primary-300'
-                      : 'bg-surface-50 border-gray-700 text-gray-400 hover:border-gray-500'
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs text-gray-400">Medio de pago</label>
+              <button
+                onClick={() => setIsSplit(!isSplit)}
+                className={`text-xs px-2 py-0.5 rounded-lg border transition-colors ${
+                  isSplit
+                    ? 'bg-primary/20 border-primary text-primary-300'
+                    : 'bg-surface-50 border-gray-700 text-gray-500 hover:border-gray-500'
+                }`}
+              >
+                {isSplit ? 'Pago simple' : 'Dividir pago'}
+              </button>
             </div>
+
+            {!isSplit ? (
+              <div className="grid grid-cols-3 gap-2">
+                {PAYMENT_METHODS.map((m) => (
+                  <button
+                    key={m.value}
+                    onClick={() => setPayment(m.value)}
+                    className={`px-3 py-2 rounded-xl text-xs font-medium border transition-colors ${
+                      payment === m.value
+                        ? 'bg-primary/20 border-primary text-primary-300'
+                        : 'bg-surface-50 border-gray-700 text-gray-400 hover:border-gray-500'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {splitPayments.map((sp, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <select
+                      value={sp.method}
+                      onChange={(e) => {
+                        const updated = [...splitPayments];
+                        updated[idx].method = e.target.value as PaymentMethod;
+                        setSplitPayments(updated);
+                      }}
+                      className="flex-1 bg-surface border border-gray-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-primary"
+                    >
+                      {PAYMENT_METHODS.map((m) => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      value={sp.amount}
+                      onChange={(e) => {
+                        const updated = [...splitPayments];
+                        updated[idx].amount = e.target.value;
+                        setSplitPayments(updated);
+                      }}
+                      placeholder="S/ 0.00"
+                      className="w-24 bg-surface border border-gray-700 rounded-xl px-3 py-2 text-white text-xs focus:outline-none focus:border-primary"
+                      inputMode="decimal"
+                    />
+                    {splitPayments.length > 2 && (
+                      <button
+                        onClick={() => setSplitPayments(splitPayments.filter((_, i) => i !== idx))}
+                        className="text-gray-500 hover:text-red-400 text-sm"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {splitPayments.length < 4 && (
+                  <button
+                    onClick={() => setSplitPayments([...splitPayments, { method: 'efectivo', amount: '' }])}
+                    className="text-xs text-primary-300 hover:text-primary-200"
+                  >
+                    + Agregar metodo
+                  </button>
+                )}
+                {(() => {
+                  const splitTotal = splitPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+                  const diff = total - splitTotal;
+                  if (diff !== 0 && splitPayments.some((p) => Number(p.amount) > 0)) {
+                    return (
+                      <p className={`text-xs ${diff > 0 ? 'text-yellow-400' : 'text-red-400'}`}>
+                        {diff > 0 ? `Falta: S/ ${diff.toFixed(2)}` : `Excede: S/ ${Math.abs(diff).toFixed(2)}`}
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
           </div>
 
           {/* Total */}
