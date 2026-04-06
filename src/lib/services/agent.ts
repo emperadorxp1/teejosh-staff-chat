@@ -215,6 +215,15 @@ Cuando el staff dice cosas como "mis ganancias", "cuanto he ganado", "mis comisi
 
 - Responde con type "info" y el resumen como message.
 
+VER GANANCIAS DE UN STAFF (SOLO ADMIN):
+Cuando un ADMIN dice cosas como "ganancias de [nombre]", "ver comisiones del staff", "cuanto ha ganado [nombre]", "ver ganancias del equipo":
+1. Primero usa "list_staff" para obtener la lista de staff con sus IDs y nombres.
+2. Si el admin no especificó un nombre, muestra la lista de staff para que elija:
+   "¿De quién quieres ver las ganancias?"
+   Y lista los nombres.
+3. Si el admin especificó un nombre, busca el match en la lista y usa "get_my_earnings" con ese staff_user_id.
+4. Formatea igual que las ganancias propias pero indicando el nombre del staff al inicio.
+
 Si el staff pide informacion (consulta de stock, ventas del dia, etc.) y no es una venta ni movimiento, responde con:
 {
   "type": "info",
@@ -228,12 +237,23 @@ IMPORTANTE:
 - Responde SIEMPRE con JSON valido, sin texto fuera del JSON.
 - Para pagos divididos: "100 efectivo y el resto tarjeta" significa calcular el resto como total - 100.`;
 
-export async function processMessage(supabase: Supabase, text: string, staffUserId?: string): Promise<AgentResult> {
+export async function processMessage(supabase: Supabase, text: string, staffUserId?: string, staffRole?: string): Promise<AgentResult> {
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+    let contextLines = '';
+    if (staffUserId) {
+      contextLines += `\n- staff_user_id: "${staffUserId}"`;
+      contextLines += `\n- role: "${staffRole || 'staff'}"`;
+      if (staffRole === 'admin') {
+        contextLines += '\n- Eres ADMINISTRADOR. Puedes usar "list_staff" para listar el equipo y luego "get_my_earnings" con el ID de cualquier staff para ver sus ganancias.';
+      } else {
+        contextLines += '\n- Usa este ID cuando necesites consultar tus ganancias con get_my_earnings.';
+      }
+    }
+
     const systemPrompt = staffUserId
-      ? `${SYSTEM_PROMPT}\n\nCONTEXTO DEL STAFF ACTUAL:\n- staff_user_id: "${staffUserId}"\nUsa este ID cuando necesites consultar las ganancias del staff con get_my_earnings.`
+      ? `${SYSTEM_PROMPT}\n\nCONTEXTO DEL STAFF ACTUAL:${contextLines}`
       : SYSTEM_PROMPT;
 
     const messages: Anthropic.MessageParam[] = [

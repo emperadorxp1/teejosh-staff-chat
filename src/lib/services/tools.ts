@@ -49,18 +49,27 @@ export const tools: Anthropic.Tool[] = [
   },
   {
     name: 'get_my_earnings',
-    description: 'Obtiene las ganancias/comisiones del staff actual. Incluye: ventas totales, comision por ventas (S/4 por cada S/150), dias de caja abierta, bonus por caja (S/4 por dia), retiros de productos, y balance final.',
+    description: 'Obtiene las ganancias/comisiones de un staff. Incluye: ventas totales, comision por ventas (S/4 por cada S/150), dias de caja abierta, bonus por caja (S/4 por dia), retiros de productos, y balance final.',
     input_schema: {
       type: 'object' as const,
       properties: {
         staff_user_id: {
           type: 'string',
-          description: 'UUID del staff',
+          description: 'UUID del staff cuyas ganancias se quieren consultar',
         },
       },
       required: ['staff_user_id'],
     },
   },
+  {
+    name: 'list_staff',
+    description: 'Lista todos los miembros del staff con su ID y nombre. Solo para uso de administradores.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
-export type ToolName = 'search_products' | 'check_stock' | 'get_daily_sales' | 'list_daily_sales' | 'get_my_earnings';
+export type ToolName = 'search_products' | 'check_stock' | 'get_daily_sales' | 'list_daily_sales' | 'get_my_earnings' | 'list_staff';

@@ -18,6 +18,8 @@ export async function handleToolCall(
       return JSON.stringify(await listDailySales(supabase));
     case 'get_my_earnings':
       return JSON.stringify(await getStaffEarnings(supabase, input.staff_user_id as string));
+    case 'list_staff':
+      return JSON.stringify(await listStaff(supabase));
     default:
       return JSON.stringify({ error: `Tool desconocido: ${name}` });
   }
@@ -344,4 +346,20 @@ async function getStaffEarnings(supabase: Supabase, staffUserId: string) {
     withdrawal_items: withdrawalItems,
     balance,
   };
+}
+
+async function listStaff(supabase: Supabase) {
+  const { data: staff } = await supabase
+    .from('users')
+    .select('id, full_name, email, role')
+    .in('role', ['staff', 'admin'])
+    .order('full_name');
+
+  if (!staff || staff.length === 0) return [];
+
+  return staff.map((s) => ({
+    id: s.id,
+    name: s.full_name || s.email,
+    role: s.role,
+  }));
 }
