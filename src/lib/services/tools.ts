@@ -49,16 +49,20 @@ export const tools: Anthropic.Tool[] = [
   },
   {
     name: 'get_my_earnings',
-    description: 'Obtiene las ganancias/comisiones de un staff. Incluye: ventas totales, comision por ventas (S/4 por cada S/150), dias de caja abierta, bonus por caja (S/4 por dia), retiros de productos, y balance final.',
+    description: 'Obtiene las ganancias/comisiones de un staff. Incluye: ventas totales, comision por ventas (S/4 por cada S/150), dias de caja abierta, bonus por caja (S/4 por dia), retiros de productos, y balance final. Puedes pasar el UUID o el nombre del staff.',
     input_schema: {
       type: 'object' as const,
       properties: {
         staff_user_id: {
           type: 'string',
-          description: 'UUID del staff cuyas ganancias se quieren consultar',
+          description: 'UUID del staff. Usa esto para consultar tus propias ganancias.',
+        },
+        staff_name: {
+          type: 'string',
+          description: 'Nombre del staff a consultar. Usa esto cuando un admin quiere ver ganancias de otro staff.',
         },
       },
-      required: ['staff_user_id'],
+      required: [],
     },
   },
   {

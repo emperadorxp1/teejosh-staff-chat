@@ -16,8 +16,21 @@ export async function handleToolCall(
       return JSON.stringify(await getDailySales(supabase));
     case 'list_daily_sales':
       return JSON.stringify(await listDailySales(supabase));
-    case 'get_my_earnings':
-      return JSON.stringify(await getStaffEarnings(supabase, input.staff_user_id as string));
+    case 'get_my_earnings': {
+      let userId = input.staff_user_id as string | undefined;
+      if (!userId && input.staff_name) {
+        const { data: found } = await supabase
+          .from('users')
+          .select('id')
+          .ilike('full_name', `%${input.staff_name}%`)
+          .limit(1)
+          .single();
+        if (!found) return JSON.stringify({ error: `No se encontró staff con nombre "${input.staff_name}"` });
+        userId = found.id;
+      }
+      if (!userId) return JSON.stringify({ error: 'Se necesita staff_user_id o staff_name' });
+      return JSON.stringify(await getStaffEarnings(supabase, userId));
+    }
     case 'list_staff':
       return JSON.stringify(await listStaff(supabase));
     default:

@@ -217,12 +217,9 @@ Cuando el staff dice cosas como "mis ganancias", "cuanto he ganado", "mis comisi
 
 VER GANANCIAS DE UN STAFF (SOLO ADMIN):
 Cuando un ADMIN dice cosas como "ganancias de [nombre]", "ver comisiones del staff", "cuanto ha ganado [nombre]", "ver ganancias del equipo":
-1. Primero usa "list_staff" para obtener la lista de staff con sus IDs y nombres.
-2. Si el admin no especificó un nombre, muestra la lista de staff para que elija:
-   "¿De quién quieres ver las ganancias?"
-   Y lista los nombres.
-3. Si el admin especificó un nombre, busca el match en la lista y usa "get_my_earnings" con ese staff_user_id.
-4. Formatea igual que las ganancias propias pero indicando el nombre del staff al inicio.
+1. Si el admin especificó un nombre, usa "get_my_earnings" con staff_name (el nombre que dijo el admin). NO uses staff_user_id del contexto, ese es el tuyo.
+2. Si el admin NO especificó un nombre, primero usa "list_staff" para obtener la lista y muestra los nombres para que elija.
+3. Formatea igual que las ganancias propias pero indicando el nombre del staff al inicio.
 
 Si el staff pide informacion (consulta de stock, ventas del dia, etc.) y no es una venta ni movimiento, responde con:
 {
