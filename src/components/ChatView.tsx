@@ -18,7 +18,7 @@ export default function ChatView({ user }: ChatViewProps) {
     {
       id: 'welcome',
       role: 'assistant',
-      content: `Hola ${user.full_name || user.email}! Soy tu asistente de ventas. Escribe o graba un audio para registrar ventas, aperturas, movimientos de caja y mas.`,
+      content: `Hola ${user.full_name || user.email}! Soy tu asistente de ventas. Escribe o graba un audio para registrar ventas, aperturas, movimientos de caja y mas.\n\nEscribe **/help** para ver todos los comandos disponibles.`,
       timestamp: new Date(),
       type: 'text',
     },
@@ -44,10 +44,41 @@ export default function ChatView({ user }: ChatViewProps) {
     ]);
   }
 
+  function getHelpMessage(): string {
+    const commands = [
+      '📦 **Registrar venta** — "vendi 2 BP Prismatic" o "venta rapida"',
+      '🔍 **Buscar producto** — "busca ETB Prismatic"',
+      '📋 **Ver ventas del dia** — "ver ventas" o "ventas de hoy"',
+      '❌ **Cancelar venta** — "cancelar venta TJ-20260401-001"',
+      '💵 **Movimiento de caja** — "retiro 20 para almuerzo" o "ingreso 50"',
+      '🎒 **Retiro de staff** — "me llevo 1 BP Prismatic"',
+      '📦 **Apertura de producto** — "abri 1 BB Prismatic, salieron 36 BP"',
+      '🏆 **Inscripcion torneo** — "cobre 5 inscripciones a 20 soles"',
+      '💰 **Mis ganancias** — "mis ganancias" o "mi balance"',
+      '📊 **Resumen del dia** — "resumen de ventas"',
+    ];
+
+    if (user.role === 'admin') {
+      commands.push(
+        '📈 **Ganancias de staff** — "ganancias de [nombre]"',
+        '📝 **Ajustar stock** — "agrega 50 BP Prismatic al inventario"',
+      );
+    }
+
+    return `**Comandos disponibles:**\n\n${commands.join('\n')}\n\n_Escribe con lenguaje natural, no necesitas usar comandos exactos._`;
+  }
+
   async function sendMessage(text: string) {
     if (!text.trim() || isLoading) return;
 
     const normalized = text.trim().toLowerCase();
+    if (normalized === '/help' || normalized === 'ayuda' || normalized === '/ayuda' || normalized === 'help') {
+      setInput('');
+      addMessage({ role: 'user', content: text, type: 'text' });
+      addMessage({ role: 'assistant', content: getHelpMessage(), type: 'text' });
+      return;
+    }
+
     if (normalized === 'venta' || normalized === 'venta rapida') {
       setInput('');
       setShowQuickSale(true);
