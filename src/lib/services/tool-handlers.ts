@@ -302,17 +302,26 @@ async function getStaffEarnings(supabase: Supabase, staffUserId: string) {
   }
   const daysOpened = uniqueDays.size;
 
-  // 3. Withdrawals cost
+  // 3. Withdrawals cost with product details
   const { data: withdrawals } = await supabase
     .from('staff_withdrawals')
-    .select('staff_withdrawal_items (total_price)')
-    .eq('staff_user_id', staffUserId);
+    .select('created_at, staff_withdrawal_items (product_name, quantity, unit_price, total_price)')
+    .eq('staff_user_id', staffUserId)
+    .order('created_at', { ascending: false });
 
   let withdrawalsCost = 0;
+  const withdrawalItems: { product_name: string; quantity: number; total_price: number; date: string }[] = [];
   if (withdrawals) {
     for (const w of withdrawals as any[]) {
+      const date = new Date(w.created_at).toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit' });
       for (const item of (w.staff_withdrawal_items || [])) {
         withdrawalsCost += item.total_price || 0;
+        withdrawalItems.push({
+          product_name: item.product_name,
+          quantity: item.quantity,
+          total_price: item.total_price || 0,
+          date,
+        });
       }
     }
   }
@@ -332,6 +341,7 @@ async function getStaffEarnings(supabase: Supabase, staffUserId: string) {
     caja_bonus: cajaBonus,
     total_earned: totalEarned,
     withdrawals_cost: withdrawalsCost,
+    withdrawal_items: withdrawalItems,
     balance,
   };
 }
