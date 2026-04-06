@@ -11,7 +11,6 @@ export async function GET() {
   const { data, error } = await serviceClient
     .from('products')
     .select(`id, name, sku, price, image_url, inventory!inner (quantity, reserved_quantity)`)
-    .eq('is_active', true)
     .order('updated_at', { ascending: false })
     .limit(20);
 

@@ -70,8 +70,7 @@ async function searchProducts(supabase: Supabase, query: string) {
   // Strategy 1: All words must match (most specific)
   let wordQuery = supabase
     .from('products')
-    .select(SELECT_FIELDS)
-    .eq('is_active', true);
+    .select(SELECT_FIELDS);
 
   for (const word of words) {
     wordQuery = wordQuery.ilike('name', `%${word}%`);
@@ -83,7 +82,6 @@ async function searchProducts(supabase: Supabase, query: string) {
   const { data: directResults } = await supabase
     .from('products')
     .select(SELECT_FIELDS)
-    .eq('is_active', true)
     .or(`name.ilike.%${searchQuery}%,sku.ilike.%${searchQuery}%`)
     .limit(10);
 
@@ -106,7 +104,6 @@ async function searchProducts(supabase: Supabase, query: string) {
       const { data } = await supabase
         .from('products')
         .select(SELECT_FIELDS)
-        .eq('is_active', true)
         .ilike('name', `%${word}%`)
         .limit(5);
 
